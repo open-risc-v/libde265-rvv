@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(libde265-rvv C)
+project(libde265-rvv C CXX)
 enable_testing()
 
 # ---------------------------------------------------------------------------
