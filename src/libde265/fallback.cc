@@ -19,9 +19,25 @@
  */
 
 #include "fallback.h"
+
 #include "fallback-motion.h"
 #include "fallback-dct.h"
 #include "fallback-intrapred.h"
+#if HAVE_RVV
+#include "riscv/add_residual_rvv.c"
+
+/* 实测 4x4 内核为负优化（0.86~0.92x），这一档保留 C；8x8 及以上走 RVV。 */
+static void add_residual_8_rvv_sel (uint8_t* pDst, ptrdiff_t iStride, const int32_t* pR,
+                                    int iN, int iBitDepth) {
+  if (iN >= 8) { add_residual_8_rvv  (pDst, iStride, pR, iN, iBitDepth); }
+  else         { add_residual_fallback<uint8_t> (pDst, iStride, pR, iN, iBitDepth); }
+}
+static void add_residual_16_rvv_sel (uint16_t* pDst, ptrdiff_t iStride, const int32_t* pR,
+                                     int iN, int iBitDepth) {
+  if (iN >= 8) { add_residual_16_rvv (pDst, iStride, pR, iN, iBitDepth); }
+  else         { add_residual_fallback<uint16_t> (pDst, iStride, pR, iN, iBitDepth); }
+}
+#endif
 #include "fallback-deblk.h"
 
 
@@ -118,8 +134,18 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->transform_add_16[3] = transform_32x32_add_16_fallback;
 
   accel->rotate_coefficients = rotate_coefficients_fallback;
+#if HAVE_RVV
+#if RVV_SEL_BIG
+  accel->add_residual_8  = add_residual_8_rvv_sel;
+  accel->add_residual_16 = add_residual_16_rvv_sel;
+#else
+  accel->add_residual_8  = add_residual_8_rvv;
+  accel->add_residual_16 = add_residual_16_rvv;
+#endif
+#else
   accel->add_residual_8  = add_residual_fallback<uint8_t>;
   accel->add_residual_16 = add_residual_fallback<uint16_t>;
+#endif
   accel->dequant_coeff_block = dequant_coeff_block_fallback;
   accel->rdpcm_h = rdpcm_h_fallback;
   accel->rdpcm_v = rdpcm_v_fallback;

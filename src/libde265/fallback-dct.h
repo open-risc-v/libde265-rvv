@@ -85,6 +85,12 @@ void transform_skip_residual_fallback(int32_t *residual, const int16_t *coeffs, 
                                       int tsShift,int bdShift);
 
 
+#if HAVE_RVV
+/* RVV 内核（libde265/riscv/add_residual_rvv.c），由 setup_acceleration 覆盖指针。 */
+void add_residual_8_rvv (uint8_t* dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth);
+void add_residual_16_rvv (uint16_t* dst, ptrdiff_t stride, const int32_t* r, int nT, int bit_depth);
+#endif
+
 // --- encoding ---
 
 void fdst_4x4_8_fallback(int16_t *coeffs, const int16_t *input, ptrdiff_t stride);
