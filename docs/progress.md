@@ -21,3 +21,13 @@
 - 整链：全尺寸 0.991×；仅 ≥8x8 0.999× → 无收益，**不升 G3**。
 - 归因：add_residual 占解码时间 <1%；C 侧被内联、RVV 侧走函数指针，每块多一次调用。
 - 详见 `docs/evidence/G3-kernel-addresidual-20261115.md`。
+
+## 2026-11-15 G3 第二轮：8x8 反变换（IDCT）
+
+- `src/libde265/riscv/transform_idct8_rvv.c`：8x8 内核（两通同一基矩阵乘，无需转置/vrgather），
+  `transform_add_8[1]` 接线；16x16 同法实现但**不接线**（实测退步，理由见证据）。
+- 功能：qemu off/on `fnv_px=cf67fb9981835c6a` 一致；内核 bench 在 on 侧逐像素比对后再计时。
+- 真机：内核级 8x8 1.46×（889→608 ns）；整链 806.9→803.5 k us = **1.004×**（6/6 轮同向）。
+- 16x16：全量算 0.975×、`nnz<=8` 门控 0.997×，均退步 —— 门控扫描成本 > 收益，
+  需上层传 nnz 才能救。
+- 证据：`docs/evidence/G3-kernel-idct8-20261115.md`

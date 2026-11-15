@@ -122,8 +122,17 @@ void init_acceleration_functions_fallback(struct acceleration_functions* accel)
   accel->transform_bypass_rdpcm_v = transform_bypass_rdpcm_v_fallback;
   accel->transform_4x4_dst_add_8 = transform_4x4_luma_add_8_fallback;
   accel->transform_add_8[0] = transform_4x4_add_8_fallback;
+#if HAVE_RVV
+  transform_idct8_rvv_init ();
+  transform_idct16_rvv_init ();
+  accel->transform_add_8[1] = transform_8x8_add_8_rvv;
+  /* 16x16 RVV 实测更慢：真实残差极稀疏，C 的 lastCol 截断几乎免费，
+     RVV 要么全量算、要么付 256 次扫描的门控成本 —— 两者都亏。保留实现但不接线。 */
+  accel->transform_add_8[2] = transform_16x16_add_8_fallback;
+#else
   accel->transform_add_8[1] = transform_8x8_add_8_fallback;
   accel->transform_add_8[2] = transform_16x16_add_8_fallback;
+#endif
   accel->transform_add_8[3] = transform_32x32_add_8_fallback;
 
   accel->transform_skip_16 = transform_skip_16_fallback;

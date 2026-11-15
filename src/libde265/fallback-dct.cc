@@ -695,6 +695,10 @@ void transform_idct_add(pixel_t *dst, ptrdiff_t stride,
 
 
 
+#if HAVE_RVV
+#include "riscv/transform_idct8_rvv.c"
+#endif
+
 void transform_idct_fallback(int32_t *dst, int nT, const int16_t *coeffs, int bdShift, int max_coeff_bits)
 {
   /*
